@@ -1,7 +1,13 @@
 import datetime
+import uuid
+from fastapi import Depends
 import jwt
 from pwdlib import PasswordHash
+from sqlalchemy import select
 from src.config import config
+from sqlalchemy.ext.asyncio import AsyncSession
+from src.db import get_session
+from src.models.session import Sessions
 
 password_hash = PasswordHash.recommended()
 
@@ -15,22 +21,20 @@ async def check_password(password:str, hashed_password:str) -> bool:
 
 
 
-async def create_acces_token(user_id:int) -> str:
+async def create_acces_token(user_id:int,session:AsyncSession) -> str:
+ key = uuid.uuid4()
+ session_db = Sessions(user_id = user_id,id = key , exp = datetime.datetime.now(datetime.timezone.utc)+datetime.timedelta(minutes=30))
+ session.add(session_db)
+
+ return key
+
+
+async def decode_acces_token(token:uuid.UUID,session:AsyncSession) -> int| None:
  now = datetime.datetime.now(datetime.timezone.utc)
-
- payload = {
-  "user_id": user_id,
-  "iat":now,
-  'exp': now + datetime.timedelta(minutes=30)
- }
- return jwt.encode(payload,config.auth_config.SECRET_KEY,config.auth_config.ALGORITHM)
-
-
-async def decode_acces_token(token:str) -> int| None:
- try:
-  payload = jwt.decode(
-   token,config.auth_config.SECRET_KEY,[config.auth_config.ALGORITHM]
-  )
-  return int(payload["user_id"])
- except:
+ ses = await session.scalar(select(Sessions).where(Sessions.id == token))
+ if not ses:
   return None
+ exp = ses.exp.replace(tzinfo=datetime.timezone.utc)
+ if exp <= now:
+  return None
+ return int(ses.user_id)

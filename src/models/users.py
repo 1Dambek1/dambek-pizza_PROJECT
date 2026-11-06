@@ -12,3 +12,4 @@ class User(Base):
  address:Mapped[str]
 
  password:Mapped[str]
+ lalala:Mapped[str] = mapped_column(default="lal")

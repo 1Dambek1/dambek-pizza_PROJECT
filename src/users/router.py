@@ -17,11 +17,15 @@ async def register(user_data:CreateUser,
  user.password = await hash_password(user.password)
  session.add(user)
  await session.flush()
- jwt = await create_acces_token(user.id)
+ jwt = await create_acces_token(user.id, session )
  await session.commit()
  return jwt
 
-
+@app.get("/tests/users")
+async def users(session:AsyncSession = Depends(get_session)):
+ users = await session.scalars(select(User))
+ return users.all()
 @app.get("/get")
 async def get_user(user:User = Depends(get_current_user),session:AsyncSession = Depends(get_session)):
+ ...
  return user

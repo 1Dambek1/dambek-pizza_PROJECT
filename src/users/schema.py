@@ -9,3 +9,5 @@ class CreateUser(BaseModel):
  address:str
 
  password:str
+
+ laqaqa:str
