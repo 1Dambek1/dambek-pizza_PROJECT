@@ -10,4 +10,3 @@ class CreateUser(BaseModel):
 
  password:str
 
- laqaqa:str

@@ -1,0 +1,13 @@
+services:
+  backend:
+    build: .
+    ports:
+     - "8000:8000"
+    container_name: backend
+    depends_on:
+      - redis
+  redis:
+    image: redis
+    ports:
+      - "6379:6379"
+    container_name: redis
