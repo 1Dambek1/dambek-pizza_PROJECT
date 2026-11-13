@@ -18,8 +18,5 @@ class Pizza(Base):
  name:Mapped[str]
  price:Mapped[float]
  description:Mapped[str]
- # sizes:Mapped[Size] = mapped_column(
- #  Enum(Size),
- #  default=Size.medium
- # )
+ 
 
