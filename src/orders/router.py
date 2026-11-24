@@ -6,13 +6,15 @@ from sqlalchemy.orm import selectinload
 from src.db import get_session
 import random
 from sqlalchemy import delete, insert, select
-from src.models.pizza import Pizza
+from src.models.pizza import Category, Pizza
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.models.basket import Size, Basket
 from src.models.users import User
 from src.users.get_user import get_current_user
 from fastapi import HTTPException
 from src.models.orders import Items, Order
+from src.utils import templates
+from .utils import *
 app = APIRouter(prefix="/pizza", tags=["pizza"])
 
 
@@ -43,18 +45,26 @@ async def generate_pizzas(
 
 
 @app.get("/get/pizzas")
-async def get_pizzas(limit:int, offset:int,session: AsyncSession = Depends(get_session)):
+async def get_pizzas(limit:int, offset:int,request:Request,session: AsyncSession = Depends(get_session)):
  data = (await session.scalars(select(Pizza).limit(limit).offset(offset)) ).all()
+ return templates.TemplateResponse(request,"index.html",context={"pizzas":data})
+
+@app.get("/categories")
+async def get_pizzas(session: AsyncSession = Depends(get_session)):
+ cats = await session.scalars(select(Category))
+ return cats.all()
+
+@app.get("/get/pizzas/cat/{idx}")
+async def get_pizzas(limit:int, offset:int, idx:int,session: AsyncSession = Depends(get_session)):
+ data = (await session.scalars(select(Pizza).where(Pizza.cat_id == idx).limit(limit).offset(offset)) ).all()
  return data
-
-
 
 @app.post("/add/basket")
 async def add_basket(pizza_id:int,size:Size,user:User = Depends(get_current_user),session: AsyncSession = Depends(get_session)):
    pizza = await session.scalar(select(Pizza).where(Pizza.id == pizza_id))
    if not pizza:
       raise HTTPException()
-   basket = await session.scalar(select(Basket).where(Basket.user_id == user.id, Basket.pizza_id == pizza_id))
+   basket = await session.scalar(select(Basket).where(Basket.user_id == user.id, Basket.pizza_id == pizza_id, Basket.size == size))
    if basket:
       basket.count +=1
       await session.commit()
@@ -70,12 +80,14 @@ async def geg_backet(user:User = Depends(get_current_user),session: AsyncSession
    user_data = await session.scalars(select(Basket).where(Basket.user_id == user.id).options(selectinload(Basket.pizza)))
    return user_data.all()
 
+
+
 @app.get("/get/price/backet")
 async def geg_backet(user:User = Depends(get_current_user),session: AsyncSession = Depends(get_session)):
    user_data = await session.scalars(select(Basket).where(Basket.user_id == user.id).options(selectinload(Basket.pizza)))
-   a = [basket.pizza.price*basket.count for basket in user_data]
-   sums = sum(a)
-   counts= sum(basket.count for basket in user_data)
+   a = [(basket.pizza.price*basket.count*get_coef(basket.size),basket.count) for basket in user_data]
+   sums = sum([i[0] for i in a])
+   counts= sum([i[1] for i in a])
    return {"items":counts, "total_sum":sums}
 
 @app.post("/create/order")
@@ -87,6 +99,7 @@ async def create_order(adress:str,user:User = Depends(get_current_user),session:
    order = Order(adress= adress,user_id = user.id)
    session.add(order)
    await session.flush()
+
    for basket in baskets:
      item = Items(pizza_id = basket.pizza_id,
                   size = basket.size,

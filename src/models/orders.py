@@ -12,6 +12,11 @@ class Size(str,enum.Enum):
  large = "l"
  super_large = "xl"
 
+
+class Status(str,enum.Enum):
+ cancelled = "cancelled"
+ delivered ="delivered"
+ in_proccess = "in_proccess"
 class Items(Base):
  __tablename__ = 'items'
  id:Mapped[int] = mapped_column(primary_key= True)
@@ -34,5 +39,7 @@ class Order(Base):
  items:Mapped[list["Items"]] = relationship(uselist=True)
  user_id:Mapped[int] = mapped_column(ForeignKey("user.id"))
  adress:Mapped[str]
+ status:Mapped[Status] = mapped_column(Enum(Status), default=Status.in_proccess)
+
 
 
