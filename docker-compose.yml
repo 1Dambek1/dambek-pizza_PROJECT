@@ -4,5 +4,3 @@ services:
     ports:
      - "8000:8000"
     container_name: backend
-    depends_on:
-      - redis
