@@ -10,7 +10,7 @@ from .get_user import get_current_user
 app = APIRouter(prefix="/users",tags=["users"])
 
 
-@app.post("/register")
+@app.post("/register",description="Регистрация пользователей")
 async def register(user_data:CreateUser,
                    session:AsyncSession = Depends(get_session)):
  user = User(**user_data.model_dump())
